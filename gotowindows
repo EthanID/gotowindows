@@ -1,0 +1,15 @@
+#!/bin/sh
+
+if [[ "$EUID" -ne 0 ]]; then
+    echo "ERROR: gotowindows must be run as root"
+    exit
+fi
+
+WINDOWS_EFI_ENTRY=$(efibootmgr | awk '/Windows/ {print $1; exit}' | sed -e 's/*//g' -e 's/Boot//g')
+OTHER_EFI_ENTRIES=$(efibootmgr | awk '/^Boot[0-9]{4}/' | sed -e '0,/Windows/{/Windows/d;}' | awk '{print $1;}' | sed -e 's/*//g' -e 's/Boot//g' | sed -e 's/\n/,/g' | tr '\n' ',' | sed -e 's/,$//g')
+
+efibootmgr --bootorder $WINDOWS_EFI_ENTRY,$OTHER_EFI_ENTRIES > /dev/null 2>&1
+
+if [ "$1" != "-d" ]; then
+    reboot
+fi
